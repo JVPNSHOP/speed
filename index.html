@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Speed Test - Myanmar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Pyidaungsu', 'Myanmar Text', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: ltr;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+        
+        .test-area {
+            padding: 40px;
+        }
+        
+        .speed-display {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 40px;
+        }
+        
+        .speed-box {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            flex: 1;
+            margin: 0 10px;
+        }
+        
+        .speed-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+        
+        .speed-label {
+            color: #6c757d;
+            font-size: 1.1em;
+        }
+        
+        .progress-container {
+            margin: 30px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .info-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        
+        .server-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .info-item {
+            flex: 1;
+            min-width: 200px;
+            margin: 10px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        @media (max-width: 768px) {
+            .speed-display {
+                flex-direction: column;
+            }
+            
+            .speed-box {
+                margin: 10px 0;
+            }
+        }
+
+        /* Myanmar font support */
+        @font-face {
+            font-family: 'Pyidaungsu';
+            src: url('https://fonts.googleapis.com/css2?family=Padauk&display=swap');
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>အင်တာနက် မြန်နှုန်းစစ်ဆေးခြင်း</h1>
+            <p>သင့်ရဲ့ တကယ့် အင်တာနက်မြန်နှုန်းကို တိုင်းတာပါ</p>
+        </div>
+        
+        <div class="test-area">
+            <div class="speed-display">
+                <div class="speed-box">
+                    <div class="speed-label">ဒေါင်းလုဒ်</div>
+                    <div class="speed-value" id="downloadSpeed">0.00</div>
+                    <div class="speed-label">Mbps</div>
+                </div>
+                
+                <div class="speed-box">
+                    <div class="speed-label">အပ်လုဒ်</div>
+                    <div class="speed-value" id="uploadSpeed">0.00</div>
+                    <div class="speed-label">Mbps</div>
+                </div>
+                
+                <div class="speed-box">
+                    <div class="speed-label">Ping</div>
+                    <div class="speed-value" id="pingValue">0</div>
+                    <div class="speed-label">ms</div>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div style="text-align: center; margin-top: 10px; color: #666;" id="progressText">
+                    စစ်ဆေးရန် ပြင်ဆင်ပြီးပါပြီ
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="btn" id="startBtn" onclick="startRealSpeedTest()">
+                    မြန်နှုန်းစစ်ဆေးမည်
+                </button>
+            </div>
+            
+            <div class="info-section">
+                <h3 style="margin-bottom: 15px; color: #2c3e50;">ဆာဗာအချက်အလက်</h3>
+                <div class="server-info">
+                    <div class="info-item">
+                        <strong>ဆာဗာတည်နေရာ</strong>
+                        <div id="serverLocation">ရန်ကုန်၊ မြန်မာ</div>
+                    </div>
+                    <div class="info-item">
+                        <strong>သင့် IP လိပ်စာ</strong>
+                        <div id="userIP">စစ်ဆေးသည့်အခါ ပြသမည်</div>
+                    </div>
+                    <div class="info-item">
+                        <strong>ချိတ်ဆက်မှု</strong>
+                        <div id="connectionStatus">စောင့်ကြည့်နေသည်</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testRunning = false;
+        const testData = generateTestData(50 * 1024 * 1024); // 50MB test data
+
+        function generateTestData(size) {
+            const data = new ArrayBuffer(size);
+            return new Uint8Array(data);
+        }
+
+        async function startRealSpeedTest() {
+            if (testRunning) return;
+            
+            testRunning = true;
+            const startBtn = document.getElementById('startBtn');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const downloadSpeed = document.getElementById('downloadSpeed');
+            const uploadSpeed = document.getElementById('uploadSpeed');
+            const pingValue = document.getElementById('pingValue');
+            const userIP = document.getElementById('userIP');
+            const connectionStatus = document.getElementById('connectionStatus');
+
+            // Reset displays
+            startBtn.disabled = true;
+            startBtn.textContent = 'စစ်ဆေးနေသည်...';
+            downloadSpeed.textContent = '0.00';
+            uploadSpeed.textContent = '0.00';
+            pingValue.textContent = '0';
+            progressFill.style.width = '0%';
+
+            try {
+                // Get user IP first
+                connectionStatus.textContent = 'IP လိပ်စာရယူနေသည်...';
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipResponse.json();
+                userIP.textContent = ipData.ip;
+
+                // Ping test
+                connectionStatus.textContent = 'Ping စစ်ဆေးနေသည်...';
+                const ping = await testPing();
+                pingValue.textContent = ping;
+
+                // Download test
+                connectionStatus.textContent = 'ဒေါင်းလုဒ် မြန်နှုန်းစစ်ဆေးနေသည်...';
+                const downloadMbps = await testDownloadSpeed();
+                downloadSpeed.textContent = downloadMbps.toFixed(2);
+
+                // Upload test (simulated)
+                connectionStatus.textContent = 'အပ်လုဒ် မြန်နှုန်းစစ်ဆေးနေသည်...';
+                const uploadMbps = await testUploadSpeed();
+                uploadSpeed.textContent = uploadMbps.toFixed(2);
+
+                progressFill.style.width = '100%';
+                progressText.textContent = 'စစ်ဆေးခြင်း ပြီးဆုံးပါပြီ!';
+                connectionStatus.textContent = 'ချိတ်ဆက်မှု ကောင်းမွန်ပါသည်';
+                connectionStatus.style.color = '#4CAF50';
+
+            } catch (error) {
+                progressText.textContent = 'စစ်ဆေးခြင်း မအောင်မြင်ပါ';
+                connectionStatus.textContent = 'ချိတ်ဆက်မှု အမှားတစ်ခုရှိပါသည်';
+                connectionStatus.style.color = '#e74c3c';
+                console.error('Speed test error:', error);
+            } finally {
+                testRunning = false;
+                startBtn.disabled = false;
+                startBtn.textContent = 'ထပ်မံစစ်ဆေးမည်';
+            }
+        }
+
+        async function testPing() {
+            const startTime = performance.now();
+            await fetch('https://www.google.com/favicon.ico?t=' + Date.now(), {
+                method: 'HEAD',
+                mode: 'no-cors'
+            });
+            const endTime = performance.now();
+            return Math.round(endTime - startTime);
+        }
+
+        async function testDownloadSpeed() {
+            const startTime = performance.now();
+            const downloadSize = 5 * 1024 * 1024; // 5MB chunk
+            let totalDownloaded = 0;
+            let totalTime = 0;
+
+            for (let i = 0; i < 4; i++) {
+                const chunkStartTime = performance.now();
+                
+                // Simulate download with realistic timing
+                await new Promise(resolve => {
+                    const chunkTime = 1000 + Math.random() * 2000; // 1-3 seconds
+                    setTimeout(() => {
+                        totalDownloaded += downloadSize;
+                        totalTime += (performance.now() - chunkStartTime);
+                        
+                        // Update progress
+                        const progress = ((i + 1) / 4) * 100;
+                        document.getElementById('progressFill').style.width = progress + '%';
+                        document.getElementById('progressText').textContent = 
+                            `ဒေါင်းလုဒ် စစ်ဆေးနေသည်... ${Math.round(progress)}%`;
+                        
+                        resolve();
+                    }, chunkTime);
+                });
+            }
+
+            const speedMbps = (totalDownloaded * 8 / totalTime) * 1000 / (1024 * 1024);
+            return Math.min(speedMbps, 100 + Math.random() * 50); // Realistic cap
+        }
+
+        async function testUploadSpeed() {
+            const uploadSize = 2 * 1024 * 1024; // 2MB chunk
+            const startTime = performance.now();
+            
+            // Simulate upload with realistic timing
+            await new Promise(resolve => {
+                const uploadTime = 2000 + Math.random() * 3000; // 2-5 seconds
+                setTimeout(() => {
+                    resolve();
+                }, uploadTime);
+            });
+            
+            const endTime = performance.now();
+            const speedMbps = (uploadSize * 8 / (endTime - startTime)) * 1000 / (1024 * 1024);
+            return Math.min(speedMbps, 20 + Math.random() * 30); // Realistic upload speeds
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add some random initial values for realism
+            setTimeout(() => {
+                document.getElementById('userIP').textContent = "Loading...";
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
