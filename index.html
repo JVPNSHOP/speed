@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="my">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>JK VIP SPEEDTEST</title>
+  <style>
+    :root { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans", "Helvetica Neue", Arial;}
+    body { margin:0; background:#0b1020; color:#e9ecf1; display:flex; min-height:100vh; align-items:center; justify-content:center;}
+    .card { width:min(700px,92vw); background:#121935; padding:28px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,.35);}
+    .logo { display:flex; align-items:center; gap:12px; margin-bottom:10px;}
+    .logo img { width:48px; height:48px; border-radius:10px;}
+    .logo h1 { margin:0; font-size: clamp(22px, 3vw, 28px); font-weight:700; letter-spacing:1px;}
+    p.sub { margin:0 0 18px; color:#9fb0d1 }
+    .rows { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; margin:18px 0 10px; }
+    .tile { background:#0f1530; border:1px solid #27325c; padding:18px; border-radius:16px; text-align:center; }
+    .label { font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#8ea2cf; }
+    .value { font-size: clamp(26px, 5vw, 38px); font-weight:700; margin-top:6px }
+    .unit { font-size:.6em; font-weight:600; color:#9fb0d1; margin-left:4px }
+    .server { margin-top:12px; font-size:14px; color:#9fb0d1; word-break:break-all }
+    .server small { display:block; opacity:.8 }
+    button { all:unset; display:inline-block; background:#3b82f6; color:#fff; padding:12px 18px; border-radius:12px; cursor:pointer; font-weight:700; }
+    button[disabled] { opacity:.5; cursor:not-allowed }
+    .bar { height:6px; border-radius:999px; background:#1d2547; overflow:hidden; margin-top:10px }
+    .bar > i { display:block; height:100%; width:0%; background:#58c08e; transition: width .2s ease; }
+    .foot { margin-top:16px; font-size:12px; color:#7f93c4 }
+    .muted { color:#7f93c4 }
+    @media (max-width:700px){ .rows{ grid-template-columns:1fr 1fr } }
+    @media (max-width:540px){ .rows{ grid-template-columns:1fr } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Speedometer_font_awesome.svg/120px-Speedometer_font_awesome.svg.png" alt="JK VIP">
+      <h1>JK VIP SPEEDTEST</h1>
+    </div>
+    <p class="sub">Powered by M-Lab ndt7 (External API)</p>
+
+    <div class="rows">
+      <div class="tile">
+        <div class="label">Download</div>
+        <div class="value" id="down">— <span class="unit">Mbps</span></div>
+        <div class="bar"><i id="downbar"></i></div>
+      </div>
+      <div class="tile">
+        <div class="label">Upload</div>
+        <div class="value" id="up">— <span class="unit">Mbps</span></div>
+        <div class="bar"><i id="upbar"></i></div>
+      </div>
+      <div class="tile">
+        <div class="label">Ping</div>
+        <div class="value" id="ping">— <span class="unit">ms</span></div>
+        <div class="bar"><i id="pingbar"></i></div>
+      </div>
+    </div>
+
+    <div class="server" id="server">Server: —</div>
+    <div class="server"><small id="ip">IP: —</small></div>
+
+    <div style="margin-top:18px">
+      <button id="run">Start Test</button>
+      <span class="muted" id="status" style="margin-left:10px"></span>
+    </div>
+    <div class="foot">
+      Your IP and measurement data may be sent to M-Lab when you run the test.
+      <a href="https://www.measurementlab.net/privacy/" target="_blank" style="color:#9ec8ff;">Privacy Policy</a>
+    </div>
+  </div>
+
+  <!-- ===== Minimal ndt7 client (inline) ===== -->
+  <script>
+  (function(g){g.ndt7={test:ndt7test};function ndt7test(opts,cbs){if(!opts||!opts.userAcceptedDataPolicy)throw new Error("Accept data policy");cbs=cbs||{};const LOC="https://locate.measurementlab.net/v2/nearest/ndt/ndt7";return fetch(LOC).then(r=>r.json()).then(j=>{const s=j.results&&j.results[0];if(!s)throw new Error("no servers");cbs.serverChosen&&cbs.serverChosen(s);let base=s.urls?.[0]?.url||s.urls_ws?.[0]||("wss://"+s.machine+"/ndt/v7/");const D=(base.endsWith("/")?base+"download":base+"/download");const U=(base.endsWith("/")?base+"upload":base+"/upload");return run(D,"down").then(dr=>{cbs.downloadComplete&&cbs.downloadComplete(dr);return run(U,"up").then(ur=>{cbs.uploadComplete&&cbs.uploadComplete(ur);return{download:dr,upload:ur};});});});function run(url,dir){return new Promise(res=>{const ws=new WebSocket(url,"net.measurementlab.ndt.v7");ws.binaryType="arraybuffer";let lastMbps=0,last;ws.onopen=()=>ws.send(JSON.stringify({msg:"start"}));ws.onmessage=e=>{if(typeof e.data==="string"){try{const m=JSON.parse(e.data);const tci=m?.Data?.TCPInfo;if(tci&&typeof tci.BytesReceived==="number"&&typeof tci.ElapsedTime==="number"){const mbps=(tci.BytesReceived*8)/tci.ElapsedTime;lastMbps=mbps; if(cbs[dir==="down"?"downloadMeasurement":"uploadMeasurement"]) cbs[dir==="down"?"downloadMeasurement":"uploadMeasurement"]({Source:"server",Data:{TCPInfo:tci},ComputedMbps:mbps}); last={LastServerMeasurement:{TCPInfo:tci}};}}catch(_){} } };ws.onerror=e=>cbs.error&&cbs.error(e);ws.onclose=()=>res(last||{LastServerMeasurement:{TCPInfo:{BytesReceived:0,ElapsedTime:1}}});});}}
+  })(this);
+  </script>
+
+  <!-- ===== UI logic ===== -->
+  <script>
+    const el = (id)=>document.getElementById(id);
+    const fmt = (v, n=2)=> (v ?? 0).toFixed(n);
+
+    async function resolveIP(host){
+      try{
+        const r = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`, {cache:'no-store'});
+        const j = await r.json();
+        const a = j.Answer && j.Answer.find(x=>x.type===1);
+        return a ? a.data : null;
+      }catch{ return null; }
+    }
+    async function pingHost(host, tries=4){
+      const times=[];
+      for(let i=0;i<tries;i++){
+        const t0 = performance.now();
+        try{ await fetch(`https://${host}/?x=${Math.random()}`, {mode:'no-cors',cache:'no-store'}); }
+        catch(e){}
+        times.push(performance.now()-t0);
+      }
+      times.sort((a,b)=>a-b);
+      return times[Math.floor(times.length/2)];
+    }
+
+    async function runTest(){
+      el('run').disabled = true;
+      el('status').textContent = 'Selecting server…';
+      el('down').innerHTML = '0.00 <span class="unit">Mbps</span>';
+      el('up').innerHTML   = '0.00 <span class="unit">Mbps</span>';
+      el('ping').innerHTML = '— <span class="unit">ms</span>';
+      el('downbar').style.width = '0%';
+      el('upbar').style.width = '0%';
+      el('pingbar').style.width = '0%';
+
+      try {
+        await ndt7.test(
+          { userAcceptedDataPolicy: true, metadata: { client_name: 'JK VIP Speedtest', client_version: '1.2.0' } },
+          {
+            serverChosen: async (s) => {
+              let base = s.urls?.[0]?.url || s.urls_ws?.[0] || (s.machine ? `wss://${s.machine}/ndt/v7/` : null);
+              let host='unknown'; try{ host = new URL(base).host; } catch(e){ if(s.machine) host=s.machine; }
+              const city = s.location?.city || 'unknown';
+              el('server').textContent = `Server: ${host} (${city})`;
+              const ip = await resolveIP(host); el('ip').textContent = `IP: ${ip || '—'}`;
+              const ms = await pingHost(host, 4); el('ping').innerHTML = `${fmt(ms,0)} <span class="unit">ms</span>`;
+              el('pingbar').style.width = Math.min(100, 200/ms*100) + '%';
+              el('status').textContent = 'Testing…';
+            },
+            downloadMeasurement: (m) => {
+              // m.Source==='server' with m.Data.TCPInfo
+              const t = m?.Data?.TCPInfo;
+              if (t) {
+                const mbps = (t.BytesReceived*8)/t.ElapsedTime;
+                el('down').innerHTML = `${fmt(mbps)} <span class="unit">Mbps</span>`;
+                el('downbar').style.width = Math.min(100, mbps) + '%';
+              }
+            },
+            uploadMeasurement: (m) => {
+              const t = m?.Data?.TCPInfo;
+              if (t) {
+                const mbps = (t.BytesReceived*8)/t.ElapsedTime;
+                el('up').innerHTML = `${fmt(mbps)} <span class="unit">Mbps</span>`;
+                el('upbar').style.width = Math.min(100, mbps) + '%';
+              }
+            },
+            downloadComplete: (d) => {
+              const t = d?.LastServerMeasurement?.TCPInfo;
+              if (t) { const mbps = (t.BytesReceived*8)/t.ElapsedTime;
+                el('down').innerHTML = `${fmt(mbps)} <span class="unit">Mbps</span>`;
+                if (mbps>0) el('downbar').style.width = '100%';
+              }
+            },
+            uploadComplete: (d) => {
+              const t = d?.LastServerMeasurement?.TCPInfo;
+              if (t) { const mbps = (t.BytesReceived*8)/t.ElapsedTime;
+                el('up').innerHTML = `${fmt(mbps)} <span class="unit">Mbps</span>`;
+                if (mbps>0) el('upbar').style.width = '100%';
+              }
+            },
+            error: (err) => { el('status').textContent = 'Error: ' + (err?.message || err); }
+          }
+        );
+        el('status').textContent = 'Done';
+      } catch (e) {
+        el('status').textContent = 'Error: ' + (e?.message || e);
+      } finally {
+        el('run').disabled = false;
+      }
+    }
+
+    document.getElementById('run').addEventListener('click', runTest);
+  </script>
+</body>
+</html>
