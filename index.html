@@ -1,0 +1,92 @@
+<!-- 1) Try jsDelivr; if it fails, load unpkg -->
+  <script id="ndt7-cdn" src="https://cdn.jsdelivr.net/npm/@m-lab/ndt7/dist/ndt7.min.js"
+          defer onerror="(function(){var s=document.createElement('script');s.defer=true;s.src='https://unpkg.com/@m-lab/ndt7/dist/ndt7.min.js';document.head.appendChild(s);})();">
+  </script>
+
+  <script>
+    const el = (id)=>document.getElementById(id);
+    const fmt = (mbps)=> (mbps ?? 0).toFixed(2);
+
+    // 2) Wait until ndt7 is available before enabling the button
+    async function waitForNDT7(timeoutMs=8000){
+      const start = Date.now();
+      while (!window.ndt7) {
+        if (Date.now() - start > timeoutMs) throw new Error("ndt7 library failed to load");
+        await new Promise(r=>setTimeout(r,150));
+      }
+      return window.ndt7;
+    }
+
+    async function runTest(){
+      el('run').disabled = true;
+      el('status').textContent = 'Loading library…';
+      el('down').innerHTML = '0.00 <span class="unit">Mbps</span>';
+      el('up').innerHTML   = '0.00 <span class="unit">Mbps</span>';
+      el('downbar').style.width = '0%';
+      el('upbar').style.width = '0%';
+
+      try {
+        const ndt7 = await waitForNDT7();   // ✅ make sure it's loaded
+        el('status').textContent = 'Testing…';
+
+        await ndt7.test(
+          {
+            userAcceptedDataPolicy: true,
+            metadata: { client_name: 'JK VIP Speedtest', client_version: '1.0.0' },
+          },
+          {
+            serverChosen: (s) => {
+              el('server').textContent = `Server: ${s.machine} (${s.location && s.location.city ? s.location.city : 'unknown'})`;
+            },
+            downloadMeasurement: (d) => {
+              if (d.Source === 'client' && d.Data && typeof d.Data.MeanClientMbps === 'number') {
+                el('down').innerHTML = `${fmt(d.Data.MeanClientMbps)} <span class="unit">Mbps</span>`;
+                el('downbar').style.width = Math.min(100, d.Data.MeanClientMbps) + '%';
+              }
+            },
+            downloadComplete: (d) => {
+              const mbps = d?.LastClientMeasurement?.MeanClientMbps;
+              if (typeof mbps === 'number') {
+                el('down').innerHTML = `${fmt(mbps)} <span class="unit">Mbps</span>`;
+                el('downbar').style.width = '100%';
+              }
+            },
+            uploadMeasurement: (d) => {
+              if (d.Source === 'server' && d.Data?.TCPInfo) {
+                const mbps = (d.Data.TCPInfo.BytesReceived / d.Data.TCPInfo.ElapsedTime) * 8;
+                el('up').innerHTML = `${fmt(mbps)} <span class="unit">Mbps</span>`;
+                el('upbar').style.width = Math.min(100, mbps) + '%';
+              }
+            },
+            uploadComplete: (d) => {
+              const bytes = d?.LastServerMeasurement?.TCPInfo?.BytesReceived;
+              const elapsed = d?.LastServerMeasurement?.TCPInfo?.ElapsedTime;
+              if (bytes && elapsed) {
+                const mbps = (bytes * 8) / elapsed;
+                el('up').innerHTML = `${fmt(mbps)} <span class="unit">Mbps</span>`;
+                el('upbar').style.width = '100%';
+              }
+            },
+            error: (err) => {
+              el('status').textContent = 'Error: ' + (err?.message || err);
+              el('run').disabled = false;
+            }
+          }
+        );
+        el('status').textContent = 'Done';
+      } catch (e) {
+        el('status').textContent = 'Error: ' + (e?.message || e);
+      } finally {
+        el('run').disabled = false;
+      }
+    }
+
+    // Disable button until library loads (extra safety)
+    el('run').disabled = true;
+    (async()=>{
+      try { await waitForNDT7(); el('run').disabled = false; el('status').textContent=''; }
+      catch(e){ el('status').textContent = 'Error: ' + e.message; }
+    })();
+
+    el('run').addEventListener('click', runTest);
+  </script>
